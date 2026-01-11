@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
 
+# =========================
+# ENV FIX (WAJIB DI ATAS)
+# =========================
+import os
+os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import streamlit as st
-from ultralytics import YOLO
 from PIL import Image, ImageDraw
 import numpy as np
-import os
+
+# Import ultralytics SETELAH env fix
+from ultralytics import YOLO
 
 # =========================
 # CONFIG
@@ -24,15 +32,15 @@ NMS_IOU = 0.20
 # =========================
 # LOAD CLASS NAMES
 # =========================
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_class_names(path):
     with open(path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f.readlines()]
 
 # =========================
-# LOAD MODEL
+# LOAD MODEL (SAFE)
 # =========================
-@st.cache_resource
+@st.cache_resource(show_spinner=True)
 def load_model():
     return YOLO(MODEL_PATH)
 
@@ -52,7 +60,7 @@ def iou_xyxy(a, b):
     return inter / union if union > 0 else 0.0
 
 def ultra_aggressive_nms(boxes, scores, classes, iou_thresh=0.20):
-    if len(boxes) == 0:
+    if not boxes:
         return [], [], []
 
     idxs = np.argsort(scores)[::-1]
@@ -85,7 +93,7 @@ def sort_reading_order(boxes, scores, classes):
     )
 
 def add_smart_spacing(boxes, classes, class_names):
-    if len(boxes) == 0:
+    if not boxes:
         return ""
 
     widths = [b[2] - b[0] for b in boxes]
@@ -95,7 +103,7 @@ def add_smart_spacing(boxes, classes, class_names):
     for i, cls in enumerate(classes):
         result.append(class_names[cls])
         if i < len(boxes) - 1:
-            gap = boxes[i+1][0] - boxes[i][2]
+            gap = boxes[i + 1][0] - boxes[i][2]
             if gap > median_width * 0.35:
                 result.append(" ")
 
@@ -120,7 +128,6 @@ def draw_boxes(image, boxes, scores, classes, class_names):
 # =========================
 st.title("🔠 Deteksi Aksara Sunda Tulisan Tangan (YOLOv11)")
 
-# Validasi file
 if not os.path.exists(MODEL_PATH):
     st.error("❌ File model 'best.pt' tidak ditemukan.")
     st.stop()
@@ -160,22 +167,23 @@ if uploaded_file:
         scores = r.boxes.conf.cpu().numpy().tolist()
         classes = r.boxes.cls.cpu().numpy().astype(int).tolist()
 
-        # 1️⃣ Ultra-aggressive NMS
         boxes, scores, classes = ultra_aggressive_nms(
             boxes, scores, classes, iou_thresh=NMS_IOU
         )
 
-        # 2️⃣ Sorting reading order
-        boxes, scores, classes = sort_reading_order(boxes, scores, classes)
+        boxes, scores, classes = sort_reading_order(
+            boxes, scores, classes
+        )
 
-        # 3️⃣ Smart spacing
-        hasil_teks = add_smart_spacing(boxes, classes, class_names)
+        hasil_teks = add_smart_spacing(
+            boxes, classes, class_names
+        )
 
-        # Draw result
-        result_img = draw_boxes(image, boxes, scores, classes, class_names)
+        result_img = draw_boxes(
+            image, boxes, scores, classes, class_names
+        )
+
         st.image(result_img, caption="✅ Hasil Deteksi", use_container_width=True)
-
-        # Output text
         st.subheader("📄 Hasil Pembacaan")
         st.success(hasil_teks)
 
