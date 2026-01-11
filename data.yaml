@@ -1,0 +1,7 @@
+
+train: /content/dataset_yolo/images/train
+val: /content/dataset_yolo/images/val
+test: /content/dataset_yolo/images/test
+
+nc: 32
+names: ['ba', 'ca', 'da', 'fa', 'ga', 'ha', 'ja', 'ka', 'kha', 'la', 'ma', 'na', 'nga', 'nya', 'pa', 'qa', 'ra', 'sa', 'sya', 'ta', 'va', 'wa', 'xa', 'ya', 'za', 'a', 'i', 'u', 'e', 'é', 'eu', 'o']
